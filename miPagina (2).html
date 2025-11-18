@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html>
+<body>
+<h2>Micro:bit → PC → Google Sheets</h2>
+<button id="connect">Conectar Micro:bit</button>
+
+<script>
+const url = "https://script.google.com/macros/s/AKfycbw2Vee8B64nvsOkjBWG6FQn4F4n2-xvlfPl3aWCa5PXF5vl-HSL_QPISACrIwpbw1o2/exec";
+
+document.getElementById("connect").onclick = async () => {
+
+    const port = await navigator.serial.requestPort();
+    await port.open({ baudRate: 115200 });
+
+    const decoder = new TextDecoderStream();
+    port.readable.pipeTo(decoder.writable);
+    const reader = decoder.readable.getReader();
+
+    while (true) {
+        const { value, done } = await reader.read();
+        if (done) break;
+        if (value) {
+            let valor = value.trim();
+            console.log("Dato recibido:", valor);
+
+            fetch(url, {
+                method: "POST",
+                headers: { "Content-Type": "application/x-www-form-urlencoded" },
+                body: `valor=${valor}`
+            })
+            .then(r => r.text())
+            .then(t => console.log("Apps Script respondió:", t))
+            .catch(err => console.error("Error al enviar:", err));
+        }
+    }
+};
+</script>
+</body>
+</html>
